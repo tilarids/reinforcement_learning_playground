@@ -14,7 +14,7 @@ import datetime as dt
 import sys
 
 DTYPE = tf.float32
-RENDER_EVERY = 100
+RENDER_EVERY = 10
 MONITOR = False
 # Sample from probability distribution.
 def cat_sample(prob_nk):
@@ -86,7 +86,7 @@ class PGAgent(object):
     self.train = tf.train.AdamOptimizer().minimize(loss)
     self.session.run(tf.initialize_all_variables())
 
-  def rollout(self, max_pathlength, timesteps_per_batch):
+  def rollout(self, max_pathlength, timesteps_per_batch, render=False):
     paths = []
     timesteps_sofar = 0
     while timesteps_sofar < timesteps_per_batch:
@@ -96,7 +96,8 @@ class PGAgent(object):
       self.prev_action *= 0.0
       self.prev_obs *= 0.0
       for x in xrange(max_pathlength):
-        if not RENDER_EVERY is None and 0==x % RENDER_EVERY: env.render()
+        if render:
+          env.render()
         obs_new = np.expand_dims(
             np.concatenate([ob, self.prev_obs, self.prev_action], 0), 0)
 
@@ -158,8 +159,10 @@ class PGAgent(object):
     discounted_eprs = []
     mean_path_lens = []
     while True:
+      render = not RENDER_EVERY is None and 0 == iteration_number % RENDER_EVERY
       paths = self.rollout(max_pathlength=10000,
-                           timesteps_per_batch=self.timesteps_per_batch)
+                           timesteps_per_batch=self.timesteps_per_batch,
+                           render=render)
 
       for path in paths:
         path["prev_policy"] = self.predict_for_path(path)
@@ -184,10 +187,12 @@ class PGAgent(object):
 
       mean_path_len = np.mean([len(path['rewards']) for path in paths])
       mean_path_lens.append(mean_path_len)
-      print "Current iteration mean_path_len: %s" % mean_path_len
-      if iteration_number > 100:
+      print "Iteration %s mean_path_len: %s" % (iteration_number, mean_path_len)
+      if iteration_number > 200:
         paths = self.rollout(max_pathlength=10000, timesteps_per_batch=40000)
-        return np.mean([len(path['rewards']) for path in paths]), np.mean(mean_path_lens)
+        ret = np.mean([len(path['rewards']) for path in paths]), np.mean(mean_path_lens)
+        print "Validation result: %s" % (ret[0])
+        return ret
 
 if __name__ == '__main__':
   seed = 1
@@ -202,13 +207,13 @@ if __name__ == '__main__':
 
   agent = PGAgent(env,
                   win_step=None,
-                  H=87,
-                  timesteps_per_batch=1793,
-                  learning_rate=0.0000022134469959712048,
-                  gamma=0.9709822161334865,
-                  epochs=52,
-                  dropout=0.7600433610799155,
-                  win_reward=317.75621177926485)
+                  H=53,
+                  timesteps_per_batch=942,
+                  learning_rate=0.0001711781685234833,
+                  gamma=0.8676106987337779,
+                  epochs=7,
+                  dropout=0.6361959729200584,
+                  win_reward=387.48113155097553)
   agent.learn()
   if MONITOR:
     env.monitor.close()
