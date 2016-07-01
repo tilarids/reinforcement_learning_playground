@@ -10,12 +10,14 @@ from gym.spaces import Discrete, Box
 import prettytensor as pt
 import tempfile
 import csv
-import datetime as dt
 import sys
 
 DTYPE = tf.float32
 RENDER_EVERY = None
-MONITOR = False
+MONITOR = True
+
+logger = logging.getLogger('pg_agent')
+logger.setLevel(logging.INFO)
 
 # Sample from the probability distribution.
 def cat_sample(prob_nk):
@@ -31,7 +33,6 @@ def cat_sample(prob_nk):
     return out
 
 def write_csv(file_name, *arrays):
-  import csv
   with open(file_name, 'wb') as csvfile:
     writer = csv.writer(csvfile, delimiter=',')
     for row in zip(*arrays):
@@ -59,6 +60,8 @@ class ValueFunction(object):
     self.x = tf.placeholder(tf.float32, shape=[None, features_count], name="x")
     self.y = tf.placeholder(tf.float32, shape=[None], name="y")
     self.net = (pt.wrap(self.x)
+                .fully_connected(64, activation_fn=tf.nn.relu)
+                .dropout(self.dropout)
                 .fully_connected(64, activation_fn=tf.nn.relu)
                 .dropout(self.dropout)
                 .fully_connected(1))
@@ -95,7 +98,7 @@ class PGAgent(object):
   def __init__(self, env, win_step, H, timesteps_per_batch, learning_rate, gamma, epochs, dropout, win_reward):
     if not isinstance(env.observation_space, Box) or \
        not isinstance(env.action_space, Discrete):
-        print("Incompatible spaces.")
+        logger.error("Incompatible spaces.")
         exit(-1)
 
     self.H = H
@@ -212,7 +215,7 @@ class PGAgent(object):
     return self.session.run(self.policy_network, {self.obs: features})
 
   def learn(self):
-    self.current_observation = env.reset()
+    self.current_observation = self.env.reset()
 
     xs,hs,dlogps,drs = [],[],[],[]
 
@@ -257,11 +260,11 @@ class PGAgent(object):
 
       mean_path_len = np.mean([len(path['rewards']) for path in paths])
       mean_path_lens.append(mean_path_len)
-      print "Iteration %s mean_path_len: %s" % (iteration_number, mean_path_len)
+      logger.info("Iteration %s mean_path_len: %s", iteration_number, mean_path_len)
       if iteration_number > 100:
         paths = self.rollout(max_pathlength=10000, timesteps_per_batch=40000)
         ret = np.mean([len(path['rewards']) for path in paths]), np.mean(mean_path_lens)
-        print "Validation result: %s" % (ret[0])
+        logger.info("Validation result: %s", ret[0])
         if not MONITOR:
           write_csv('/tmp/out.csv', mean_path_lens, value_function_losses)
         return ret
@@ -279,12 +282,12 @@ if __name__ == '__main__':
 
   agent = PGAgent(env,
                   win_step=199,
-                  H=53,
-                  timesteps_per_batch=942,
-                  learning_rate=0.0001711781685234833,
-                  gamma=0.8676106987337779,
-                  epochs=7,
-                  dropout=0.6361959729200584,
+                  H=109,
+                  timesteps_per_batch=1369,
+                  learning_rate=0.028609296254614544,
+                  gamma=0.9914327475117531,
+                  epochs=4,
+                  dropout=0.5043049954791183,
                   win_reward=1)
   agent.learn()
   if MONITOR:
