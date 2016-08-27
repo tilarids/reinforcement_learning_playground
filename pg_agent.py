@@ -132,7 +132,6 @@ def line_search(f, x, max_step, expected_improve_rate):
         actual_improve = fval - newfval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve / expected_improve
-        import pdb; pdb.set_trace()
         if ratio > accept_ratio and actual_improve > 0:
             return xnew
     return x
@@ -413,7 +412,7 @@ class PGAgent(object):
 
       def get_loss_for(weights_flat):
         self.set_variables_from_flat_form(weights_flat)
-        return self.session.run(self.loss, feed_dict)
+        return self.session.run(tf.reduce_mean(self.loss), feed_dict)
 
       # search along the search direction.
       new_weights = line_search(get_loss_for, previous_parameters_flat, max_step, max_step_length * neg_gradients_dot_step_direction)
