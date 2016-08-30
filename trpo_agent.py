@@ -15,6 +15,7 @@ import prettytensor as pt
 
 from value_function import ValueFunction
 from space_conversion import SpaceConversionEnv
+import caesar
 
 DTYPE = tf.float32
 RENDER_EVERY = None
@@ -107,7 +108,7 @@ def var_shape(x):
 
 # Learning agent. Encapsulates training and prediction.
 class TRPOAgent(object):
-  def __init__(self, env, H, timesteps_per_batch, learning_rate, gamma, epochs, dropout):
+  def __init__(self, env, H, timesteps_per_batch, learning_rate, gamma, epochs, dropout, max_iterations):
     if not isinstance(env.observation_space, Box) or \
        not isinstance(env.action_space, Discrete):
         logger.error("Incompatible spaces.")
@@ -120,6 +121,7 @@ class TRPOAgent(object):
     self.epochs = epochs
     self.dropout = dropout
     self.env = env
+    self.max_iterations = max_iterations
     self.session = tf.Session()
 
     # Full state used for next action prediction. Contains current
@@ -145,6 +147,7 @@ class TRPOAgent(object):
     self.policy_network, _ = (
         pt.wrap(self.obs)
             .fully_connected(H, activation_fn=tf.nn.tanh)
+
             # .dropout(self.dropout)
             .softmax_classifier(env.action_space.n))
     self.returns = tf.placeholder(DTYPE,
@@ -382,7 +385,7 @@ class TRPOAgent(object):
       mean_path_len = np.mean([len(path['rewards']) for path in paths])
       mean_path_lens.append(mean_path_len)
       logger.info("Iteration %s mean_path_len: %s", iteration_number, mean_path_len)
-      if iteration_number > 100:
+      if iteration_number > self.max_iterations:
         paths = self.rollout(max_pathlength=10000, timesteps_per_batch=40000)
         ret = np.mean([len(path['rewards']) for path in paths]), np.mean(mean_path_lens)
         logger.info("Validation result: %s", ret[0])
@@ -397,6 +400,7 @@ if __name__ == '__main__':
   tf.set_random_seed(seed)
 
   env_name = "CartPole-v0" if len(sys.argv) < 2 else sys.argv[1]
+  max_iterations = 100 if len(sys.argv) < 3 else int(sys.argv[2])
 
   env = gym.make(env_name)
   env = SpaceConversionEnv(env, Box, Discrete)
@@ -406,12 +410,13 @@ if __name__ == '__main__':
     env.monitor.start(training_dir)
 
   agent = TRPOAgent(env,
-                    H=109,
+                    H=309,
                     timesteps_per_batch=1369,
                     learning_rate=0.028609296254614544,
                     gamma=0.9914327475117531,
                     epochs=4,
-                    dropout=0.5043049954791183)
+                    dropout=0.5043049954791183,
+                    max_iterations=max_iterations)
   agent.learn()
   if MONITOR:
     env.monitor.close()
