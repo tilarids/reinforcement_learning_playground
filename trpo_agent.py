@@ -14,6 +14,7 @@ from gym.spaces import Discrete, Box
 import prettytensor as pt
 
 from value_function import ValueFunction
+from space_conversion import SpaceConversionEnv
 
 DTYPE = tf.float32
 RENDER_EVERY = None
@@ -398,6 +399,8 @@ if __name__ == '__main__':
   env_name = "CartPole-v0" if len(sys.argv) < 2 else sys.argv[1]
 
   env = gym.make(env_name)
+  env = SpaceConversionEnv(env, Box, Discrete)
+
   if MONITOR:
     training_dir = tempfile.mkdtemp()
     env.monitor.start(training_dir)
