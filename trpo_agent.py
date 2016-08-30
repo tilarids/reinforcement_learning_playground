@@ -15,7 +15,6 @@ import prettytensor as pt
 
 from value_function import ValueFunction
 from space_conversion import SpaceConversionEnv
-import caesar
 
 DTYPE = tf.float32
 RENDER_EVERY = None
@@ -108,7 +107,7 @@ def var_shape(x):
 
 # Learning agent. Encapsulates training and prediction.
 class TRPOAgent(object):
-  def __init__(self, env, H, timesteps_per_batch, learning_rate, gamma, epochs, dropout, max_iterations):
+  def __init__(self, env, H, timesteps_per_batch, learning_rate, gamma, layers, dropout, max_iterations):
     if not isinstance(env.observation_space, Box) or \
        not isinstance(env.action_space, Discrete):
         logger.error("Incompatible spaces.")
@@ -118,7 +117,7 @@ class TRPOAgent(object):
     self.timesteps_per_batch = timesteps_per_batch
     self.learning_rate = learning_rate
     self.gamma = gamma
-    self.epochs = epochs
+    self.layers = layers
     self.dropout = dropout
     self.env = env
     self.max_iterations = max_iterations
@@ -144,12 +143,15 @@ class TRPOAgent(object):
                                       shape=[None, env.action_space.n],
                                       name="prev_policy")
 
-    self.policy_network, _ = (
-        pt.wrap(self.obs)
-            .fully_connected(H, activation_fn=tf.nn.tanh)
+    self.policy_network = pt.wrap(self.obs)
+    for _ in xrange(self.layers):
+      self.policy_network = (self.policy_network
+          .fully_connected(H, activation_fn=tf.nn.tanh)
+          # .dropout(self.dropout)
+          )
 
-            # .dropout(self.dropout)
-            .softmax_classifier(env.action_space.n))
+    self.policy_network, _ = (self.policy_network
+        .softmax_classifier(env.action_space.n))
     self.returns = tf.placeholder(DTYPE,
                                   shape=[None, env.action_space.n],
                                   name="returns")
@@ -410,11 +412,11 @@ if __name__ == '__main__':
     env.monitor.start(training_dir)
 
   agent = TRPOAgent(env,
-                    H=309,
+                    H=109,
                     timesteps_per_batch=1369,
                     learning_rate=0.028609296254614544,
                     gamma=0.9914327475117531,
-                    epochs=4,
+                    layers=1,
                     dropout=0.5043049954791183,
                     max_iterations=max_iterations)
   agent.learn()

@@ -36,7 +36,7 @@ class CaesarEnv(algorithmic_env.AlgorithmicEnv):
         len_left = self.total_len
         i = 0
         while len_left > 0:
-          rand_len = self.np_random.randint(1, max(len_left, MAX_LEN))
+          rand_len = self.np_random.randint(1, min(len_left, MAX_LEN) + 1)
           if not LEN_TO_WORD[rand_len]:
             continue
           encoded = self.np_random.choice(LEN_TO_WORD[rand_len])
