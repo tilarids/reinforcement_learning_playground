@@ -53,7 +53,7 @@ def discount_rewards(r, gamma):
 
 # Learning agent. Encapsulates training and prediction.
 class PGAgent(object):
-  def __init__(self, env, win_step, H, timesteps_per_batch, learning_rate, gamma, epochs, dropout, win_reward):
+  def __init__(self, env, H, timesteps_per_batch, learning_rate, gamma, epochs, dropout):
     if not isinstance(env.observation_space, Box) or \
        not isinstance(env.action_space, Discrete):
         logger.error("Incompatible spaces.")
@@ -65,8 +65,6 @@ class PGAgent(object):
     self.gamma = gamma
     self.epochs = epochs
     self.dropout = dropout
-    self.win_reward = win_reward
-    self.win_step = win_step
     self.env = env
     self.session = tf.Session()
 
@@ -140,11 +138,7 @@ class PGAgent(object):
         actions_one_hot.append(np.copy(self.prev_action))
 
         res = list(self.env.step(action))
-        if not self.win_step is None and self.win_step==len(rewards):
-          rewards.append(self.win_reward)
-          res[2] = True
-        else:
-          rewards.append(res[1])
+        rewards.append(res[1])
         ob = res[0]
 
         if res[2]:
@@ -232,21 +226,20 @@ if __name__ == '__main__':
   random.seed(seed)
   np.random.seed(seed)
   tf.set_random_seed(seed)
+  env_name = "CartPole-v0" if len(sys.argv) < 2 else sys.argv[1]
 
-  env = gym.make("CartPole-v0")
+  env = gym.make(env_name)
   if MONITOR:
     training_dir = tempfile.mkdtemp()
     env.monitor.start(training_dir)
 
   agent = PGAgent(env,
-                  win_step=199,
                   H=109,
                   timesteps_per_batch=1369,
                   learning_rate=0.028609296254614544,
                   gamma=0.9914327475117531,
                   epochs=4,
-                  dropout=0.5043049954791183,
-                  win_reward=1)
+                  dropout=0.5043049954791183)
   agent.learn()
   if MONITOR:
     env.monitor.close()
