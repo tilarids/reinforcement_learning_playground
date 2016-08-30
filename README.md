@@ -11,6 +11,10 @@ at step 200 so you can't use monitor at the same time as training on more than 2
 
 [Gym evaluation](https://gym.openai.com/evaluations/eval_dWo7uqR2Ti6RX7naakndQ)
 
+Reproducing:
+* Consider changing the API key :)
+* `python pg_agent.py`
+
 ### CartPole - Policy Gradients with TRPO
 
 The same as above but use conjugate gradients + line search method described in [TRPO paper](http://arxiv.org/abs/1502.05477). Inspiration for the implementation comes from the https://github.com/wojzaremba/trpo again but I tried to make it more readable and close to the paper.
@@ -19,5 +23,4 @@ The same as above but use conjugate gradients + line search method described in 
 
 Reproducing:
 * Consider changing the API key :)
-* `python pg_agent.py`
 * `python trpo_agent.py`
