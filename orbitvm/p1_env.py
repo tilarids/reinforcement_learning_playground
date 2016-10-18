@@ -47,7 +47,7 @@ class OrbitP1Env(gym.Env):
 
     def _reset(self):
         self.orbitvm = P1()
-        self.vm_input = [0.0] * 0x3E81
+        self.vm_input = [0.0] * 16384
         self.vm_output = [0.0] * 6
 
     def _render(self, mode='human', close=False):

@@ -1,5 +1,20 @@
 import math
 
+# class Wrapper(object):
+#     def __init__(self, name, val):
+#         self.name = name
+#         self.val = val
+
+#     def __get__(self, obj, objtype=None):
+#         print "get %s -> %s" % (self.name, self.val)
+#         return self.val
+
+#     def __set__(self, obj, value):
+#         print "set %s <- %s, prev: %s" % (self.name, value, self.val)
+#         self.val = value
+
+#     def __delete__(self, obj):
+#         pass
 
 class P1(object):
     def __init__(self):
@@ -50,7 +65,7 @@ class P1(object):
         self.d55 = 6.457e+06
         self.d57 = 0.0
         self.d59 = 0.0
-        self.d60 = -6.35+06
+        self.d60 = -6.35e+06
         self.d62 = 0.0
         self.d64 = 0.0
         self.d66 = 0.0
@@ -214,6 +229,20 @@ class P1(object):
         self.d263 = 0.0
         self.d264 = 0.0
         self.d265 = 0.0
+
+    def set_target_orbit(self, r):
+        self.d28 = r / 1000
+
+    def set_start_orbit(self, r):
+        G = 6.67428e-11 # self.d99
+        M = 6e+24 # self.d96
+        v = (G * M / r) ** 0.5
+
+        dx = (r ** 2 - v ** 2) ** 0.5
+        dy = -v
+
+        self.d84 = dx
+        self.d117 = dy
 
     def step(self, input, output):
         """
