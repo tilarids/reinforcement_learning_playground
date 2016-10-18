@@ -10,6 +10,7 @@ from orbitvm.p1 import P1
 
 logger = logging.getLogger(__name__)
 
+MAX_STEPS = 100000
 class OrbitP1Env(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
@@ -36,19 +37,21 @@ class OrbitP1Env(gym.Env):
         return [seed]
 
     def _step(self, action):
-            assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
-            self.vm_input[0x3E80] = 1001
-            self.vm_input[0x2] = action[0]
-            self.vm_input[0x3] = action[1]
-            self.orbitvm.step(self.vm_input, self.vm_output)
-            done = False
-            reward = 1.0
-            return np.array(self.vm_output), reward, done, {}
+        assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
+        self.vm_input[0x3E80] = 1001
+        self.vm_input[0x2] = action[0]
+        self.vm_input[0x3] = action[1]
+        self.orbitvm.step(self.vm_input, self.vm_output)
+        reward = self.vm_output[0x0] + 1.0 - abs(math.sqrt(self.vm_output[0x2]**2 + self.vm_output[0x3]**2) - self.vm_output[0x4]) / 2e+08
+        self._current_step += 1
+        done = self._current_step > MAX_STEPS
+        return np.array(self.vm_output), reward, done, {}
 
     def _reset(self):
         self.orbitvm = P1()
         self.vm_input = [0.0] * 16384
         self.vm_output = [0.0] * 6
+        self._current_step = 0
 
     def _render(self, mode='human', close=False):
         if close:
